@@ -1,5 +1,4 @@
-///Users/abdielmelendez/Desktop/GitProjects/Sample.txt
-///Users/abdielmelendez/Desktop/GitProjects/EmptySample.txt
+//https://github.com/abdielo88/Melendez_Abdiel_DMS.git
 //Password to login is secured123
 import java.io.*;
 import java.util.*;
