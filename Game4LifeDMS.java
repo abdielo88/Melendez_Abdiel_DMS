@@ -1,6 +1,7 @@
-//https://github.com/abdielo88/Melendez_Abdiel_DMS.git
 //Password to login is secured123
 import java.io.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.text.DecimalFormat;
 
@@ -68,18 +69,51 @@ public class Game4LifeDMS /*This class contains the main method and the differen
             System.out.println("Type '1' to display games on list");
             System.out.println("Type '2' to add a new game to the list");
             System.out.println("Type '3' to remove/sell a game from the list");
-            System.out.println("Type '4' to order more games");
-            System.out.println("Type '5' to close the system");
-            int choice = scanner.nextInt();
-            scanner.nextLine();
+            System.out.println("Type '4' to update games from the list");
+            System.out.println("Type '5' to order more games");
+            System.out.println("Type '6' to close the system");
+
+            int choice = 0;
+            boolean validInput = false;
+
+            while (!validInput) //This is used to make sure that the user only puts numbers between 1-5 for the menu options.
+            {
+                try
+                {
+                    choice = Integer.parseInt(scanner.nextLine());
+                    if (choice >= 1 && choice <= 6)
+                    {
+                        validInput = true;
+                    } else
+                    {
+                        System.out.print("Invalid input; please input a number between 1 and 6 to either: ");
+                        System.out.println("\n'1' to display games on list");
+                        System.out.println("'2' to add a new game to the list");
+                        System.out.println("'3' to remove/sell a game from the list");
+                        System.out.println("'4' to update a game from the list");
+                        System.out.println("'5' to order more games");
+                        System.out.println("'6' to close the system");
+                    }
+                } catch (NumberFormatException e)
+                {
+                    System.out.print("Invalid input; please input a number between 1 and 6 to either: ");
+                    System.out.println("\n'1' to display games on list");
+                    System.out.println("'2' to add a new game to the list");
+                    System.out.println("'3' to remove/sell a game from the list");
+                    System.out.println("'4' to update a game from the list");
+                    System.out.println("'5' to order more games");
+                    System.out.println("'6' to close the system");
+                }
+            }
 
             switch (choice)
             {
                 case 1: displayGames(); break;
                 case 2: addGame(scanner); saveInventoryToFile(); break;
                 case 3: removeGame(scanner); saveInventoryToFile(); break;
-                case 4: orderGames(scanner); break;
-                case 5: exit = true; break;
+                case 4: updateGame(scanner); saveInventoryToFile(); break;
+                case 5: orderGames(scanner); break;
+                case 6: exit = true; break;
                 default: System.out.println("Invalid number; please try again.");
             }
         }
@@ -215,7 +249,7 @@ public class Game4LifeDMS /*This class contains the main method and the differen
                     {
                         gameInventory.remove(game.id);
                     }
-                    reassignIds(); //Read line 319
+                    reassignIds(); //Read the comment of the last method, reassignIds().
                 }
                 break;
             }
@@ -227,10 +261,55 @@ public class Game4LifeDMS /*This class contains the main method and the differen
         }
     }
 
-    private static void orderGames(Scanner scanner) /*The orders will require the game's information in order for it to
-    be sent to the headquarters; as of right now, this is just an example of how making an order would look like when
-    the system is implemented into the stores. */
+    private static void updateGame(Scanner scanner) /*This will allow the user to update any information
+    of any game that is on the list. It will ask for the ID of the game that needs to be updated, and the user will
+    be able to edit all of its information (if the information like the name of the game stays the same, they can
+    just type it in again). */
     {
+        int id;
+        while (true)
+        {
+            System.out.print("Enter the ID of the game you want to update: ");
+            id = getIntInput(scanner, "");
+
+            if (gameInventory.containsKey(id))
+            {break;}
+            else
+            {
+                System.out.println("Error: Game with ID " + id + " not found; please try again.");
+            }
+        }
+
+        GameInfo game = gameInventory.get(id);
+
+        System.out.print("Enter the new name of the game, if any (current: " + game.name + "): ");
+        String newName = scanner.nextLine();
+        String newType = getValidInput(scanner, "For what type of console? " +
+                "(Playstation, Xbox, Nintendo Switch) (current: " + game.type + "): ", gameTypes);
+        String newCategory = getValidInput(scanner, "What's the game category? (Action/Adventure, Sci-Fi, " +
+                "Horror/Thriller, Puzzles, Family-Friendly, Sports) (current: " + game.category + "): ", gameCategories);
+        double newPrice = getDoubleInput(scanner, "Enter the new price of the game, if any " +
+                "(in 0.00 format; no need to put the '$' symbol) (current: $" + game.price + "): ");
+        int newQuantity = getIntInput(scanner, "Enter the new amount of " +
+                "copies of the game, if any (current: " + game.quantity + "): ");
+
+        game.name = newName;
+        game.type = newType;
+        game.category = newCategory;
+        game.price = newPrice;
+        game.quantity = newQuantity;
+
+        System.out.println("Game information has been updated successfully.");
+        System.out.println("\n");
+    }
+
+    private static void orderGames(Scanner scanner) /*The orders will require the game's information in order for it to
+    be sent to the headquarters. The last section of this method will allow the user to create or update their txt file
+    with all the orders they have made so far; all the orders will also include a date and time info attached to them.*/
+    {
+        DateTimeFormatter dateTime = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        LocalDateTime now = LocalDateTime.now();
+
         System.out.print("Enter the name of the game you want to order: ");
         String name = scanner.nextLine();
         String type = getValidInput(scanner, "What is the console for this game? (Playstation, Xbox, Nintendo Switch) ", gameTypes);
@@ -238,9 +317,27 @@ public class Game4LifeDMS /*This class contains the main method and the differen
                 "Puzzles, Family-Friendly, Sports) ", gameCategories);
         double price = getDoubleInput(scanner, "Enter the price of the game (in 0.00 format; no need to put the '$' symbol): ");
         int quantity = getIntInput(scanner, "How many copies are needed? ");
-        scanner.nextLine();
-        System.out.println("Order complete; expect the delivery between 1-2 weeks.");
-        System.out.println("\n");
+        System.out.print("Enter the name for the order file (without extension): ");
+        String fileName = scanner.nextLine().trim() + ".txt";
+
+        File file = new File(fileName);
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(file, true)))
+        {
+            if (!file.exists())
+            {
+                file.createNewFile();
+            }
+            writer.write("Date Order: " + now.format(dateTime));
+            writer.newLine();
+            writer.write(name + ", " + type + ", " + category + ", $" + String.format("%.2f", price) + ", "
+                    + quantity + " copies");
+            writer.newLine();
+            System.out.println("Order complete; expect the delivery between 1-2 weeks. The order has been recorded in " + fileName + "\n");
+        } catch (IOException e)
+        {
+            System.out.println("An error occurred while writing to the file.");
+            e.printStackTrace();
+        }
     }
 
     private static String getValidInput(Scanner scanner, String prompt, List<String> validOptions) /*This will make
@@ -258,25 +355,60 @@ public class Game4LifeDMS /*This class contains the main method and the differen
         }
     }
 
-
-
     private static double getDoubleInput(Scanner scanner, String prompt) /*This method guarantees that the user inputs
     the price in the correct format*/
     {
-        while (true)
+        double value = -1.0;
+        boolean validInput = false;
+
+        while (!validInput)
         {
             System.out.print(prompt);
-            if (scanner.hasNextDouble())
+            try
             {
-                double input = scanner.nextDouble();
-                scanner.nextLine();
-                return input;
-            } else
+                value = Double.parseDouble(scanner.nextLine());
+                if (value >= 0.0)
+                {
+                    validInput = true;
+                } else
+                {
+                    System.out.println("Invalid input; please type a valid number.");
+                }
+            } catch (NumberFormatException e)
             {
-                System.out.println("Invalid input; please enter a valid number.");
-                scanner.nextLine();
+                System.out.println("Invalid input; please type a valid number.");
             }
         }
+
+        return value;
+    }
+
+    private static int getIntInput(Scanner scanner, String prompt) /*This method guarantees that the user inputs
+    the amount of copies to be added/removed/ordered in the correct format*/
+    {
+        int value = -1;
+        boolean validInput = false;
+
+        while (!validInput)
+        {
+            System.out.print(prompt);
+            try
+            {
+                value = Integer.parseInt(scanner.nextLine());
+                if (value >= 0)
+                {
+                    validInput = true;
+                } else
+                {
+                    System.out.println("Invalid input; please type a valid number.");
+                }
+            } catch (NumberFormatException e)
+            {
+                System.out.println("Invalid input; please type a valid number.");
+            }
+        }
+
+        return value;
     }
 
     private static String getValidGameName(Scanner scanner, String prompt) /*This method guarantees that the user inputs
@@ -294,25 +426,6 @@ public class Game4LifeDMS /*This class contains the main method and the differen
                 }
             }
             System.out.println("The game is not in the list; please try again.");
-        }
-    }
-
-    private static int getIntInput(Scanner scanner, String prompt) /*This method guarantees that the user inputs
-    the amount of copies to be added/removed in the correct format*/
-    {
-        while (true)
-        {
-            System.out.print(prompt);
-            if (scanner.hasNextInt())
-            {
-                int input = scanner.nextInt();
-                scanner.nextLine();
-                return input;
-            } else
-            {
-                System.out.println("Invalid input; please enter a valid integer.");
-                scanner.nextLine();
-            }
         }
     }
 
