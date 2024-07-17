@@ -1,4 +1,5 @@
-//Password to login is secured123
+//For the code with the database features, check line 667.
+//Password to login is secured123.
 import javax.swing.*;
 import java.awt.*;
 import java.io.*;
@@ -661,15 +662,15 @@ public class Game4LifeDMS
     }
 }
 
-/*
 *******************************************************************************************
-
-This section contains the whole code with the database features implemented. This is still a work in progress and most of them aren't working
-at the moment; this page will be updated once the code works and it will substitute the original
+*******************************************************************************************
+/*From this line to the bottom, you will find the same code, but with the database implementation*/
+*******************************************************************************************
+*******************************************************************************************
 
 //Password to login is secured123
 
-import java.sql.Connection;
+import java.io.File;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -680,23 +681,27 @@ import java.util.*;
 import java.time.format.DateTimeFormatter;
 import java.time.LocalDateTime;
 
-public class Game4LifeDMS
+public class Game4LifeDMS /*This class contains the core of the program. It has the methods for connecting to the database
+and accessing the home page, which contains the 5 main methods for interacting with the data: displaying, adding, removing,
+updating, and ordering games.*/
 {
-    private static final String loginPassword = "secured123";
     private static final List<String> gameTypes = Arrays.asList("Playstation", "Xbox", "Nintendo Switch");
     private static final List<String> gameCategories = Arrays.asList("Action/Adventure", "Sci-Fi", "Horror/Thriller", "Puzzles", "Family-Friendly", "Sports");
     private static Map<Integer, GameInfo> gameInventory = new HashMap<>();
     private static int nextId = 1;
     private static JFrame frame;
     private static JTextArea outputArea;
-    private static String filePath;
 
-    public static void main(String[] args)
+    public static String DATABASE_NAME;
+
+    public static void main(String[] args) /*This runs the program with the GUI components*/
     {
         SwingUtilities.invokeLater(Game4LifeDMS::loginGUI);
     }
 
-    private static void loginGUI()
+    private static void loginGUI() /*The first page to encounter when running the code. It will ask for a password
+    (which is 'secured123') to login. After that, it will open the file chooser from the device, so the user may
+    pick the file they are going to work with.*/
     {
         int attempts = 0;
         while (attempts < 3)
@@ -705,11 +710,23 @@ public class Game4LifeDMS
                     "\nPlease enter the password to login (3 attempts max):", "Login", JOptionPane.QUESTION_MESSAGE);
             if ("secured123".equals(inputPassword))
             {
-                DBHelper.connect();
-                loadDataFromDatabase();
-                createMainGUI();
-                outputArea.append("Welcome to the Game4Life DMS! Pick from the following choices:\n\n");
-                return;
+                JFileChooser fileChooser = new JFileChooser();
+                int result = fileChooser.showOpenDialog(null);
+                if (result == JFileChooser.APPROVE_OPTION)
+                {
+                    File selectedFile = fileChooser.getSelectedFile();
+                    DATABASE_NAME = selectedFile.getPath();
+                    DBHelper.connect();
+                    loadDataFromDatabase();
+                    createMainGUI();
+                    outputArea.append("Welcome to the Game4Life DMS! Pick from the following choices:\n\n");
+                    return;
+                }
+                else
+                {
+                    JOptionPane.showMessageDialog(null, "File upload failed; exiting the system.");
+                    System.exit(0);
+                }
             }
             JOptionPane.showMessageDialog(null, "Incorrect password; please try again.");
             attempts++;
@@ -718,7 +735,7 @@ public class Game4LifeDMS
         System.exit(0);
     }
 
-    private static void loadDataFromDatabase()
+    private static void loadDataFromDatabase() /*Method used to load all the data in the correct format from the database*/
     {
         Game4Life dbHelper = new Game4Life();
         List<ArrayList<Object>> gamesList = dbHelper.select(null, null, null, null, null);
@@ -736,12 +753,11 @@ public class Game4LifeDMS
             gameInventory.put(id, game);
         }
 
-        nextId = gamesList.stream().mapToInt(gameData -> (int) gameData.get(0)).max().orElse(0) + 1;
+        nextId = gamesList.stream().mapToInt(gameData -> (int) gameData.getFirst()).max().orElse(0) + 1;
     }
 
-
-
-    private static void createMainGUI()
+    private static void createMainGUI() /*This method creates the design of the GUI with the 6 options attached to it:
+    Display Games, Add Game, Remove/Sell Game, Update Game, Order Game, and Exit.*/
     {
         frame = new JFrame("Game4Life Database Management System");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -788,7 +804,9 @@ public class Game4LifeDMS
         frame.setVisible(true);
     }
 
-    private static void displayGames()
+    private static void displayGames() /*The method will display the data from a specific table in the database; in this case,
+    it will display the games information from the table called "Game4Life". It will display the information in a specific format in
+    order to make the display more organized.*/
     {
         DBHelper dbHelper = new DBHelper();
         String query = "SELECT * FROM Game4Life;";
@@ -820,10 +838,14 @@ public class Game4LifeDMS
         {JOptionPane.showMessageDialog(frame, "Error fetching games from database: " + e.getMessage());}
 
         finally
-        {dbHelper.close();}
+        {DBHelper.close();}
     }
 
-    private static void addGame()
+    private static void addGame() /*Continuing with the same table, Game4Life, this method will allow the user to add
+    (or insert) a new row to the table; in other words, it will add another game to the list together with the information.
+    It will ask for the name of the game, for what type of console, the category of the game (or genre), the price amount, and
+    how many copies of the game are available at the moment. The ID for the game will be added automatically by the program
+    according to the amount of games that already exist in the list.*/
     {
         JPanel panel = new JPanel(new GridLayout(6, 2, 10, 10));
 
@@ -897,7 +919,7 @@ public class Game4LifeDMS
                 validQuantity = false;
             }
 
-            if (errorMessage.length() > 0)
+            if (!errorMessage.isEmpty())
             {
                 JOptionPane.showMessageDialog(frame, errorMessage.toString(), "Error", JOptionPane.ERROR_MESSAGE);
                 continue;
@@ -908,29 +930,29 @@ public class Game4LifeDMS
                 GameInfo newGame = new GameInfo(nextId++, name, type, category, price, quantity);
                 gameInventory.put(newGame.getId(), newGame);
 
-                String sql = "INSERT INTO Game4Life (gameID, gameName, gameType, gameCategory, gamePrice, gameQuantity) VALUES (?, ?, ?, ?, ?, ?)";
-                try (Connection conn = DBHelper.connect();
-                     PreparedStatement pstmt = conn.prepareStatement(sql))
-                {
-                    pstmt.setInt(1, newGame.getId());
-                    pstmt.setString(2, newGame.getName());
-                    pstmt.setString(3, newGame.getType());
-                    pstmt.setString(4, newGame.getCategory());
-                    pstmt.setDouble(5, newGame.getPrice());
-                    pstmt.setInt(6, newGame.getQuantity());
-                    pstmt.executeUpdate();
+                try {
+                    String insertSQL = "INSERT INTO Game4Life (gameID, gameName, gameType, gameCategory, gamePrice, gameQuantity) VALUES (?, ?, ?, ?, ?, ?)";
+                    PreparedStatement preparedStatement = DBHelper.prepareStatement(insertSQL);
+                    preparedStatement.setInt(1, newGame.id);
+                    preparedStatement.setString(2, newGame.name);
+                    preparedStatement.setString(3, newGame.type);
+                    preparedStatement.setString(4, newGame.category);
+                    preparedStatement.setDouble(5, newGame.price);
+                    preparedStatement.setInt(6, newGame.quantity);
+                    preparedStatement.executeUpdate();
+                    DBHelper.close();
                     JOptionPane.showMessageDialog(frame, "Game added successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
-                } catch (SQLException e)
-                {
-                    System.out.println(e.getMessage());
-                    JOptionPane.showMessageDialog(frame, "Error adding game to database.", "Error", JOptionPane.ERROR_MESSAGE);
+                } catch (SQLException e) {
+                    JOptionPane.showMessageDialog(frame, "Error saving game to database: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
                 }
-                break;
             }
         }
     }
 
-    private static void removeGame()
+    private static void removeGame() /*This method will ask the user for the name of a game and the amount of copies they want
+    to remove or sell (depending on the situation). If a game is fully removed/sold, it will delete it from the list and update the
+    game ID of the others depending on where it was on the list (for example, if ID 13 was removed,
+    instead of 11,12,14; it would be 11,12,13).*/
     {
         JPanel panel = new JPanel(new GridLayout(2, 2, 10, 10));
 
@@ -979,7 +1001,7 @@ public class Game4LifeDMS
                 validQuantity = false;
             }
 
-            if (errorMessage.length() > 0)
+            if (!errorMessage.isEmpty())
             {
                 JOptionPane.showMessageDialog(frame, errorMessage.toString(), "Error", JOptionPane.ERROR_MESSAGE);
                 continue;
@@ -999,7 +1021,7 @@ public class Game4LifeDMS
                             if (game.quantity == 0) {
                                 gameInventory.remove(game.id);
                                 DBHelper.deleteGame(game.id);
-                                reassignIds();
+                                reassignIds(); //Method found at the end of this code; responsible for updating the game IDs.
                             } else
                             {DBHelper.updateGameQuantity(game.id, game.quantity);}
                             JOptionPane.showMessageDialog(frame, "Game removed/sold successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
@@ -1014,12 +1036,14 @@ public class Game4LifeDMS
         }
     }
 
-
-    private static void updateGame()
+    private static void updateGame() /*In the case of misspelling the name of a game or miscalculating the amount of copies,
+    this method can help the user with updating any fields necessary of the game. It will ask for the game ID that they wish to update,
+    and it will allow the user to change any of the fields already created; the old information will be on the left of the GUI
+    for reference.*/
     {
         JFrame frame = new JFrame("Update Game Information");
         frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        frame.setSize(500, 400);
+        frame.setSize(300, 200);
         frame.setLayout(new BorderLayout());
 
         JPanel panel = new JPanel();
@@ -1138,18 +1162,20 @@ public class Game4LifeDMS
         frame.setVisible(true);
     }
 
-
-
-
-    private static void orderGames()
+    private static void orderGames() /*This is a special method that, asides from helping the user to order new games,
+    it will keep a record in the database with the date. It will ask the user for usual information of the game (name, type, category...)
+    plus the name of the table where the order's information will be saved. If the name of the table is not found in the database,
+    it will create a new table; if the name of the table already exists in the database, it will add the order's information
+    in that same table.*/
     {
         JFrame frame = new JFrame("Order Games");
         frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        frame.setSize(800, 300);
-        frame.setLayout(new GridLayout(7, 2));
+        frame.setSize(800, 400);
+        frame.setLayout(new GridLayout(8, 2));
 
         DateTimeFormatter dateTime = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         LocalDateTime now = LocalDateTime.now();
+        String formattedDate = now.format(dateTime);
 
         JLabel nameLabel = new JLabel("Enter the name of the game:");
         JTextField nameField = new JTextField();
@@ -1166,6 +1192,9 @@ public class Game4LifeDMS
         JLabel quantityLabel = new JLabel("How many copies are needed?");
         JTextField quantityField = new JTextField();
 
+        JLabel tableLabel = new JLabel("Enter the name of the table to save the order:");
+        JTextField tableField = new JTextField();
+
         JButton nextButton = new JButton("Next");
 
         frame.add(nameLabel);
@@ -1178,6 +1207,8 @@ public class Game4LifeDMS
         frame.add(priceField);
         frame.add(quantityLabel);
         frame.add(quantityField);
+        frame.add(tableLabel);
+        frame.add(tableField);
         frame.add(new JLabel());
         frame.add(nextButton);
 
@@ -1187,6 +1218,7 @@ public class Game4LifeDMS
             String category = (String) categoryBox.getSelectedItem();
             double price;
             int quantity;
+            String tableName = tableField.getText().trim();
 
             if (name.isEmpty())
             {
@@ -1222,57 +1254,28 @@ public class Game4LifeDMS
                 return;
             }
 
-            JFrame orderFrame = new JFrame("Order Table");
-            orderFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-            orderFrame.setSize(400, 200);
-            orderFrame.setLayout(new BorderLayout());
+            if (tableName.isEmpty())
+            {
+                JOptionPane.showMessageDialog(frame, "Table name cannot be empty; please enter the table name.", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
 
-            JPanel orderPanel = new JPanel();
-            orderPanel.setLayout(new GridLayout(2, 1));
+            DBHelper.connect();
+            if (!DBHelper.tableExists(tableName))
+            {DBHelper.createOrdersTable(tableName);}
 
-            JLabel orderLabel = new JLabel("Enter the name for the order table:");
-            JTextField orderField = new JTextField();
-
-            orderPanel.add(orderLabel);
-            orderPanel.add(orderField);
-
-            JButton saveButton = new JButton("Save Order");
-            saveButton.addActionListener(ev -> {
-                String tableName = orderField.getText().trim();
-
-                if (tableName.isEmpty())
-                {
-                    JOptionPane.showMessageDialog(orderFrame, "Table name cannot be empty; please enter a table name.", "Error", JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
-
-                boolean tableExists = DBHelper.checkIfTableExists(tableName);
-                if (!tableExists)
-                {DBHelper.createOrderTable(tableName);}
-
-                boolean saveSuccess = DBHelper.saveOrderToTable(tableName, now.format(dateTime), name, type, category, price, quantity);
-
-                if (saveSuccess)
-                {
-                    JOptionPane.showMessageDialog(orderFrame, "Order complete; expect the delivery between 1-2 weeks.");
-                    orderFrame.dispose();
-                    frame.dispose();
-                } else
-                {JOptionPane.showMessageDialog(orderFrame, "Failed to save order.", "Error", JOptionPane.ERROR_MESSAGE);}
-            });
-
-            orderFrame.add(orderPanel, BorderLayout.CENTER);
-            orderFrame.add(saveButton, BorderLayout.SOUTH);
-
-            orderFrame.setLocationRelativeTo(frame);
-            orderFrame.setVisible(true);
+            DBHelper.insertOrder(tableName, formattedDate, name, type, category, price, quantity);
+            JOptionPane.showMessageDialog(frame, "Order complete; expect the delivery between 1-2 weeks. " +
+                    "The order has been recorded in the " + tableName + " table.\n");
+            DBHelper.close();
+            frame.dispose();
         });
 
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
     }
 
-    private static void reassignIds()
+    private static void reassignIds() //Method used in the 'removeGame' method to update the game ID.
     {
         int newId = 1;
         Map<Integer, GameInfo> newGameInventory = new LinkedHashMap<>();
@@ -1290,10 +1293,57 @@ public class Game4LifeDMS
         nextId = newId;
     }
 }
-*/
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/*
-************************************ This is the DBHelper class: **************************************************
+import java.text.DecimalFormat;
+
+public class GameInfo /*This class contains the general information of a game: the ID, the name,
+type of console where it's played, the category (or genre), price, and amount of copies. It also shows the
+format that is used when using the 'displayGames' method in the main code.*/
+{
+    int id;
+    String name;
+    String type;
+    String category;
+    double price;
+    int quantity;
+
+    public static final DecimalFormat priceFormat = new DecimalFormat("0.00");
+
+    public GameInfo(int id, String name, String type, String category, double price, int quantity)
+    {
+        this.id = id;
+        this.name = name;
+        this.type = type;
+        this.category = category;
+        this.price = price;
+        this.quantity = quantity;
+    }
+
+    public int getId()
+    {return id;}
+
+    public String getName()
+    {return name;}
+
+    public String getType()
+    {return type;}
+
+    public String getCategory()
+    {return category;}
+
+    public double getPrice()
+    {return price;}
+
+    public int getQuantity()
+    {return quantity;}
+
+    @Override
+    public String toString()
+    {return id + ". " + name + ", " + type + ", " + category + ", $" + priceFormat.format(price) + ", " + quantity + " copies";}
+
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -1304,9 +1354,10 @@ import java.sql.*;
 import java.util.ArrayList;
 import static java.sql.DriverManager.getConnection;
 
-public class DBHelper
+public class DBHelper /*This class contains methods used in the main code that help with connecting
+and querying the database. Each method listed in here have a name that goes with its purpose, for example,
+'connect()' makes sure that there is a connection with the database that is chosen in the main code.*/
 {
-	private static final String DATABASE_NAME = "//Users/abdielmelendez/Documents/sLite/Game4Life.db";
 	private static Connection connection;
 	private static Statement statement;
 	private static ResultSet resultSet;
@@ -1318,7 +1369,7 @@ public class DBHelper
 		resultSet = null;
 	}
 
-	public static Connection connect()
+	public static void connect()
 	{
 		try
 		{Class.forName("org.sqlite.JDBC");}
@@ -1327,12 +1378,11 @@ public class DBHelper
 
 		try
 		{
-			connection = getConnection("jdbc:sqlite:" + DATABASE_NAME);
+			connection = getConnection("jdbc:sqlite:" + Game4LifeDMS.DATABASE_NAME);
 			statement = connection.createStatement();
 		} catch (SQLException e)
 		{e.printStackTrace();}
 
-		return null;
 	}
 
 	public static void close()
@@ -1342,7 +1392,7 @@ public class DBHelper
 			connection.close();
 			statement.close();
 			if (resultSet != null)
-			resultSet.close();
+				resultSet.close();
 		} catch (SQLException e)
 		{e.printStackTrace();}
 	}
@@ -1479,52 +1529,121 @@ public class DBHelper
 			return false;
 		}
 	}
-	public static boolean checkIfTableExists(String tableName)
+
+	public static boolean tableExists(String tableName)
 	{
-		String sql = "SELECT name FROM sqlite_master WHERE type='table' AND name=?";
-		try (PreparedStatement pstmt = prepareStatement(sql))
+		connect();
+		try
 		{
-			pstmt.setString(1, tableName);
-			ResultSet rs = pstmt.executeQuery();
-			return rs.next();
+			DatabaseMetaData meta = connection.getMetaData();
+			ResultSet res = meta.getTables(null, null, tableName, new String[] {"TABLE"});
+			boolean exists = res.next();
+			res.close();
+			return exists;
 		} catch (SQLException e)
 		{
-			System.out.println(e.getMessage());
+			e.printStackTrace();
 			return false;
-		}
+		} finally
+		{close();}
 	}
-	public static void createOrderTable(String tableName)
+
+	public static void createOrdersTable(String tableName)
 	{
-		String sql = "CREATE TABLE IF NOT EXISTS " + tableName + " ("
-				+ "id INTEGER PRIMARY KEY AUTOINCREMENT,"
-				+ "orderDate TEXT NOT NULL,"
-				+ "gameName TEXT NOT NULL,"
-				+ "gameType TEXT NOT NULL,"
-				+ "gameCategory TEXT NOT NULL,"
-				+ "gamePrice REAL NOT NULL,"
-				+ "gameQuantity INTEGER NOT NULL)";
-		try (Statement stmt = connect().createStatement())
+		connect();
+		String sql = "CREATE TABLE IF NOT EXISTS " + tableName + " (" +
+				"orderID INTEGER PRIMARY KEY AUTOINCREMENT, " +
+				"orderDate TEXT, " +
+				"gameName TEXT, " +
+				"gameType TEXT, " +
+				"gameCategory TEXT, " +
+				"gamePrice REAL, " +
+				"gameQuantity INTEGER)";
+		try (Statement stmt = connection.createStatement())
 		{stmt.execute(sql);}
 		catch (SQLException e)
+		{e.printStackTrace();}
+		finally
+		{close();}
+	}
+
+	public static void insertOrder(String tableName, String date, String name, String type, String category, double price, int quantity)
+	{
+		String sql = "INSERT INTO " + tableName + "(orderDate, gameName, gameType, gameCategory, gamePrice, gameQuantity) VALUES (?, ?, ?, ?, ?, ?)";
+		try (PreparedStatement pstmt = prepareStatement(sql)) {
+			pstmt.setString(1, date);
+			pstmt.setString(2, name);
+			pstmt.setString(3, type);
+			pstmt.setString(4, category);
+			pstmt.setDouble(5, price);
+			pstmt.setInt(6, quantity);
+			pstmt.executeUpdate();
+		} catch (SQLException e)
 		{System.out.println(e.getMessage());}
 	}
-	public static boolean saveOrderToTable(String tableName, String orderDate, String gameName, String gameType, String gameCategory, double gamePrice, int gameQuantity)
+}
+import javax.swing.table.DefaultTableModel;
+import java.util.ArrayList;
+
+public class Game4Life extends DBHelper /*This class contains the schema for the table 'Game4Life'.*/
+{
+	private final String TABLE_NAME = "Game4Life";
+	public static final String gameID = "gameID";
+	public static final String gameName = "gameName";
+	public static final String gameType = "gameType";
+	public static final String gameCategory = "gameCategory";
+	public static final String gamePrice = "gamePrice";
+	public static final String  gameQuantity = "gameQuantity";
+
+	private String prepareSQL(String fields, String whatField, String whatValue, String sortField, String sort)
 	{
-		String sql = "INSERT INTO " + tableName + " (orderDate, gameName, gameType, gameCategory, gamePrice, gameQuantity) VALUES (?, ?, ?, ?, ?, ?)";
-		try (PreparedStatement pstmt = prepareStatement(sql)) {
-			pstmt.setString(1, orderDate);
-			pstmt.setString(2, gameName);
-			pstmt.setString(3, gameType);
-			pstmt.setString(4, gameCategory);
-			pstmt.setDouble(5, gamePrice);
-			pstmt.setInt(6, gameQuantity);
-			pstmt.executeUpdate();
-			return true;
-		} catch (SQLException e)
+		String query = "SELECT ";
+		query += fields == null ? " * FROM " + TABLE_NAME : fields + " FROM " + TABLE_NAME;
+		query += whatField != null && whatValue != null ? " WHERE " + whatField + " = \"" + whatValue + "\"" : "";
+		query += sort != null && sortField != null ? " order by " + sortField + " " + sort : "";
+		return query;
+	}
+
+	public void insert(Integer gameID, String gameName, String gameType, String gameCategory, Double gamePrice, Integer gameQuantity)
+	{
+		gameName = gameName != null ? "\"" + gameName + "\"" : null;
+		gameType = gameType != null ? "\"" + gameType + "\"" : null;
+		gameCategory = gameCategory != null ? "\"" + gameCategory + "\"" : null;
+		
+		Object[] values_ar = {gameID, gameName, gameType, gameCategory, gamePrice, gameQuantity};
+		String[] fields_ar = {Game4Life.gameID, Game4Life.gameName, Game4Life.gameType, Game4Life.gameCategory, Game4Life.gamePrice, Game4Life.gameQuantity};
+		String values = "", fields = "";
+		for (int i = 0; i < values_ar.length; i++)
 		{
-			System.out.println(e.getMessage());
-			return false;
+			if (values_ar[i] != null)
+			{
+				values += values_ar[i] + ", ";
+				fields += fields_ar[i] + ", ";
+			}
+		}
+		if (!values.isEmpty())
+		{
+			values = values.substring(0, values.length() - 2);
+			fields = fields.substring(0, fields.length() - 2);
+			super.execute("INSERT INTO " + TABLE_NAME + "(" + fields + ") values(" + values + ");");
 		}
 	}
+
+	public void delete(String whatField, String whatValue)
+	{super.execute("DELETE from " + TABLE_NAME + " where " + whatField + " = " + whatValue + ";");}
+
+	public void update(String whatField, String whatValue, String whereField, String whereValue)
+	{super.execute("UPDATE " + TABLE_NAME + " set " + whatField + " = \"" + whatValue + "\" where " + whereField + " = \"" + whereValue + "\";");}
+
+	public ArrayList<ArrayList<Object>> select(String fields, String whatField, String whatValue, String sortField, String sort)
+	{return super.executeQuery(prepareSQL(fields, whatField, whatValue, sortField, sort));}
+
+	public ArrayList<ArrayList<Object>> getExecuteResult(String query)
+	{return super.executeQuery(query);}
+
+	public void execute(String query)
+	{super.execute(query);}
+
+	public DefaultTableModel selectToTable(String fields, String whatField, String whatValue, String sortField, String sort)
+	{return super.executeQueryToTable(prepareSQL(fields, whatField, whatValue, sortField, sort));}
 }
-*/
