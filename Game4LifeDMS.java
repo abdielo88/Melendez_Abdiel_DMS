@@ -33,7 +33,7 @@ public class Game4LifeDMS
      *
      * @param args stores the incoming command line arguments for the program.
      */
-    public static void main(String[] args) //This runs the program with the GUI components
+    public static void main(String[] args)
     {
         SwingUtilities.invokeLater(Game4LifeDMS::loginGUI);
     }
@@ -143,9 +143,7 @@ public class Game4LifeDMS
 
         JButton exitButton = new JButton("Exit");
         exitButton.addActionListener(e ->
-        {
-            System.exit(0);
-        });
+                System.exit(0));
         buttonPanel.add(exitButton);
 
         frame.add(buttonPanel, BorderLayout.CENTER);
@@ -674,6 +672,15 @@ public class GameInfo
 
     public static final DecimalFormat priceFormat = new DecimalFormat("0.00");
 
+    /**
+     * This is a constructor for a new object that contains the game's information such as the ID and name.
+     * @param id The game ID
+     * @param name The name of the game.
+     * @param type The console where the game is played.
+     * @param category The category of the game.
+     * @param price The cost of the game.
+     * @param quantity The amount of copies of the game.
+     */
     public GameInfo(int id, String name, String type, String category, double price, int quantity)
     {
         this.id = id;
@@ -684,24 +691,52 @@ public class GameInfo
         this.quantity = quantity;
     }
 
+    /**
+     * Getter to retrieve the ID of the game.
+     * @return Return the ID of the game.
+     */
     public int getId()
     {return id;}
 
+    /**
+     * Getter to retrieve the name of the game.
+     * @return Return the name of the game.
+     */
     public String getName()
     {return name;}
 
+    /**
+     * Getter for the type of console where the game is played.
+     * @return Return the type of console where the game is played.
+     */
     public String getType()
     {return type;}
 
+    /**
+     * Getter for the category of the game.
+     * @return Return the category of the game.
+     */
     public String getCategory()
     {return category;}
 
+    /**
+     * Getter for the cost of the game.
+     * @return Return the cost of the game.
+     */
     public double getPrice()
     {return price;}
 
+    /**
+     * Getter for the amount of copies of the game.
+     * @return Return the amount of copies of the game.
+     */
     public int getQuantity()
     {return quantity;}
 
+    /**
+     * Method used for formatting the game's information in a specific way.
+     * @return Return the game's information formatted.
+     */
     @Override
     public String toString()
     {return id + ". " + name + ", " + type + ", " + category + ", $" + priceFormat.format(price) + ", " + quantity + " copies";}
@@ -736,6 +771,10 @@ public class DBHelper
 		resultSet = null;
 	}
 
+	/**
+	 * Method used for creating a connection with the database. It will use the 'DATABASE_NAME'
+	 * variable from the Game4LifeDMS class to connect to its database.
+	 */
 	public static void connect()
 	{
 		try
@@ -752,6 +791,9 @@ public class DBHelper
 
 	}
 
+	/**
+	 * The method will close the connections to the database once the user is done using the program.
+	 */
 	public static void close()
 	{
 		try
@@ -764,12 +806,24 @@ public class DBHelper
 		{e.printStackTrace();}
 	}
 
+	/**
+	 * This method is used for creating a query statement using the 'String sql'.
+	 * @param sql The String that will be used to create the query.
+	 * @return It returns the already prepared statement object.
+	 * @throws SQLException This is used for giving an issue warning in case the connection to the database fails.
+	 */
 	public static PreparedStatement prepareStatement(String sql) throws SQLException
 	{
 		connect();
 		return connection.prepareStatement(sql);
 	}
 
+	/**
+	 * This method converts a 2D ArrayList into a 2D array which can be used for interacting with other
+	 * arrays included in the code.
+	 * @param list This will be the input that contains the same amount of rows as the array.
+	 * @return Returns the 2D array object.
+	 */
 	private Object[][] arrayListTo2DArray(ArrayList<ArrayList<Object>> list)
 	{
 		Object[][] array = new Object[list.size()][];
@@ -781,6 +835,10 @@ public class DBHelper
 		return array;
 	}
 
+	/**
+	 * The method will execute the SQL query that is being used.
+	 * @param sql The SQL statement.
+	 */
 	public void execute(String sql)
 	{
 		try
@@ -794,7 +852,12 @@ public class DBHelper
 		{close();}
 	}
 
-
+	/**
+	 * As the execute() method, this one will execute a query, but instead, return the result using the
+	 * DefaultTableModel, which is in a tabular format.
+	 * @param sql The SQL statement.
+	 * @return Return the results of the query.
+	 */
 	public DefaultTableModel executeQueryToTable(String sql)
 	{
 		ArrayList<ArrayList<Object>> result = new ArrayList<ArrayList<Object>>();
@@ -805,12 +868,12 @@ public class DBHelper
 			resultSet = statement.executeQuery(sql);
 			int columnCount = resultSet.getMetaData().getColumnCount();
 			for (int i = 1; i <= columnCount; i++)
-			columns.add(resultSet.getMetaData().getColumnName(i));
+				columns.add(resultSet.getMetaData().getColumnName(i));
 			while (resultSet.next())
 			{
 				ArrayList<Object> subresult = new ArrayList<Object>();
 				for (int i = 1; i <= columnCount; i++)
-				subresult.add(resultSet.getObject(i));
+					subresult.add(resultSet.getObject(i));
 				result.add(subresult);
 			}
 		} catch (SQLException e)
@@ -820,6 +883,11 @@ public class DBHelper
 		return new DefaultTableModel(arrayListTo2DArray(result), columns.toArray());
 	}
 
+	/**
+	 * The method will execute the query and return the result as a 2D ArrayList.
+	 * @param sql The SQL statement.
+	 * @return Return the results of the query as a 2D ArrayList.
+	 */
 	public ArrayList<ArrayList<Object>> executeQuery(String sql)
 	{
 		ArrayList<ArrayList<Object>> result = new ArrayList<ArrayList<Object>>();
@@ -842,6 +910,11 @@ public class DBHelper
 		return result;
 	}
 
+	/**
+	 * This will update the amount of copies of a specific game in the database.
+	 * @param id The ID of the game that will be updated.
+	 * @param quantity The amount of copies of the game.
+	 */
 	public static void updateGameQuantity(int id, int quantity)
 	{
 		String sql = "UPDATE Game4Life SET gameQuantity = ? WHERE gameID = ?";
@@ -854,6 +927,12 @@ public class DBHelper
 		{System.out.println(e.getMessage());}
 	}
 
+	/**
+	 * Method used for a game is completely removed of the inventory list. It will update the old ID of
+	 * a game and replace it with the new ID.
+	 * @param oldId The ID of the game before another game was removed.
+	 * @param newId The ID of the game after another game was removed.
+	 */
 	public static void updateGameId(int oldId, int newId)
 	{
 		String sql = "UPDATE Game4Life SET gameID = ? WHERE gameID = ?";
@@ -866,6 +945,10 @@ public class DBHelper
 		{System.out.println(e.getMessage());}
 	}
 
+	/**
+	 * Method used for removing a game from the inventory using its ID.
+	 * @param id The ID of the game to be removed.
+	 */
 	public static void deleteGame(int id)
 	{
 		String sql = "DELETE FROM Game4Life WHERE gameID = ?";
@@ -877,6 +960,11 @@ public class DBHelper
 		{System.out.println(e.getMessage());}
 	}
 
+	/**
+	 * This is used for updating anything of a game's information, such as the name or price.
+	 * @param game The game that will be updated.
+	 * @return It will let the user know if the update was successful (false) or it failed to update (true).
+	 */
 	public static boolean updateGameDetails(GameInfo game)
 	{
 		String sql = "UPDATE Game4Life SET gameName = ?, gameType = ?, gameCategory = ?, gamePrice = ?, gameQuantity = ? WHERE gameID = ?";
@@ -897,6 +985,12 @@ public class DBHelper
 		}
 	}
 
+	/**
+	 * Method used to check if a table already exists in the database; this is used for when creating
+	 * a orders table.
+	 * @param tableName The name of the table to check if it exists.
+	 * @return It will let the user know if the table exists (true) or if it doesn't (false).
+	 */
 	public static boolean tableExists(String tableName)
 	{
 		connect();
@@ -915,6 +1009,12 @@ public class DBHelper
 		{close();}
 	}
 
+	/**
+	 * Method used for creating a table containing the columns for the order's information,
+	 * including the name of the game, the type of console where it's played, category, price,
+	 * and amount of copies. It will also include a column with the date that the order was made.
+	 * @param tableName The name of the table that is being created.
+	 */
 	public static void createOrdersTable(String tableName)
 	{
 		connect();
@@ -934,6 +1034,16 @@ public class DBHelper
 		{close();}
 	}
 
+	/**
+	 * Method used to insert the game order's information into the order's table.
+	 * @param tableName The name of the order's table.
+	 * @param date Date in which the order was made.
+	 * @param name Name of the game that is being ordered.
+	 * @param type Type of console the game is played.
+	 * @param category Category of the game.
+	 * @param price The cost of the game.
+	 * @param quantity The amount of copies of the game.
+	 */
 	public static void insertOrder(String tableName, String date, String name, String type, String category, double price, int quantity)
 	{
 		String sql = "INSERT INTO " + tableName + "(orderDate, gameName, gameType, gameCategory, gamePrice, gameQuantity) VALUES (?, ?, ?, ?, ?, ?)";
@@ -952,71 +1062,51 @@ public class DBHelper
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-import javax.swing.table.DefaultTableModel;
 import java.util.ArrayList;
 
 /**
- * This class contains the schema for the table 'Game4Life'.
+ * The class contains some additional methods that connect with the DBHelper class in order
+ * to get the results from the SQL queries.
  */
 public class Game4Life extends DBHelper
 {
-	private final String TABLE_NAME = "Game4Life";
-	public static final String gameID = "gameID";
-	public static final String gameName = "gameName";
-	public static final String gameType = "gameType";
-	public static final String gameCategory = "gameCategory";
-	public static final String gamePrice = "gamePrice";
-	public static final String  gameQuantity = "gameQuantity";
-
+    /**
+	 * The method creates a SQL SELECT query that can contain conditions and sorting such as
+	 * the WHERE clause and the ASC sorting.
+	 * @param fields The fields to be selected from.
+	 * @param whatField The field where the WHERE condition will be used.
+	 * @param whatValue Value used in the WHERE condition.
+	 * @param sortField The field where the sort will be used.
+	 * @param sort The type of sort, like ascending (ASC) or descending (DESC).
+	 * @return It will return the constructed query string.
+	 */
 	private String prepareSQL(String fields, String whatField, String whatValue, String sortField, String sort)
 	{
 		String query = "SELECT ";
-		query += fields == null ? " * FROM " + TABLE_NAME : fields + " FROM " + TABLE_NAME;
+        String TABLE_NAME = "Game4Life";
+        query += fields == null ? " * FROM " + TABLE_NAME : fields + " FROM " + TABLE_NAME;
 		query += whatField != null && whatValue != null ? " WHERE " + whatField + " = \"" + whatValue + "\"" : "";
 		query += sort != null && sortField != null ? " order by " + sortField + " " + sort : "";
 		return query;
 	}
 
-	public void insert(Integer gameID, String gameName, String gameType, String gameCategory, Double gamePrice, Integer gameQuantity)
-	{
-		gameName = gameName != null ? "\"" + gameName + "\"" : null;
-		gameType = gameType != null ? "\"" + gameType + "\"" : null;
-		gameCategory = gameCategory != null ? "\"" + gameCategory + "\"" : null;
-		
-		Object[] values_ar = {gameID, gameName, gameType, gameCategory, gamePrice, gameQuantity};
-		String[] fields_ar = {Game4Life.gameID, Game4Life.gameName, Game4Life.gameType, Game4Life.gameCategory, Game4Life.gamePrice, Game4Life.gameQuantity};
-		String values = "", fields = "";
-		for (int i = 0; i < values_ar.length; i++)
-		{
-			if (values_ar[i] != null)
-			{
-				values += values_ar[i] + ", ";
-				fields += fields_ar[i] + ", ";
-			}
-		}
-		if (!values.isEmpty())
-		{
-			values = values.substring(0, values.length() - 2);
-			fields = fields.substring(0, fields.length() - 2);
-			super.execute("INSERT INTO " + TABLE_NAME + "(" + fields + ") values(" + values + ");");
-		}
-	}
-
-	public void delete(String whatField, String whatValue)
-	{super.execute("DELETE from " + TABLE_NAME + " where " + whatField + " = " + whatValue + ";");}
-
-	public void update(String whatField, String whatValue, String whereField, String whereValue)
-	{super.execute("UPDATE " + TABLE_NAME + " set " + whatField + " = \"" + whatValue + "\" where " + whereField + " = \"" + whereValue + "\";");}
-
+	/**
+	 * The method uses the prepareSQL() method together with the executeQuery() method from the DBHelper class
+	 * to execute a SQL SELECT query and return the result as a 2D ArrayList.
+	 * @param fields The fields to be selected from.
+	 * @param whatField The field where the WHERE condition will be used.
+	 * @param whatValue Value used in the WHERE condition.
+	 * @param sortField The field where the sort will be used.
+	 * @param sort The type of sort, like ascending (ASC) or descending (DESC).
+	 * @return Return the 2D ArrayList with the query results.
+	 */
 	public ArrayList<ArrayList<Object>> select(String fields, String whatField, String whatValue, String sortField, String sort)
 	{return super.executeQuery(prepareSQL(fields, whatField, whatValue, sortField, sort));}
 
-	public ArrayList<ArrayList<Object>> getExecuteResult(String query)
-	{return super.executeQuery(query);}
-
+	/**
+	 * It uses the execute() method from DBHelper class to directly execute the SQL query that is given.
+	 * @param query The SQL statement.
+	 */
 	public void execute(String query)
 	{super.execute(query);}
-
-	public DefaultTableModel selectToTable(String fields, String whatField, String whatValue, String sortField, String sort)
-	{return super.executeQueryToTable(prepareSQL(fields, whatField, whatValue, sortField, sort));}
 }
